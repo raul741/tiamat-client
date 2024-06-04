@@ -123,13 +123,21 @@ func awaitInstructions(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	if inst.IsHeartbeat == true && inst.Message == "PING" {
-		resp := Response{
-			Message: "PONG",
+
+	switch {
+	///////////////////////////////
+	case inst.IsHeartbeat == true && inst.Message == "PING":
+		resp := Response{Message: "PONG"}
+		err := sendMessage(resp, conn)
+		if err != nil {
+			return err
 		}
-		sendMessage(resp, conn)
 		return nil
+	///////////////////////////////
+	default:
+		sendMessage(Response{Message: "Unknown order!"}, conn)
 	}
+	///////////////////////////////
 	return nil
 }
 
