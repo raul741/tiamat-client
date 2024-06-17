@@ -146,10 +146,19 @@ func listFiles(conn net.Conn, rpath string) {
 
 	newList := FileList{}
 	for _, v := range list {
+		var isDir bool
+
+		f, err := os.Stat(path + v.Name())
+		if err != nil {
+			continue
+		}
+		if f.IsDir() == true {
+			isDir = true
+		}
 		item := Item{
 			Name:     v.Name(),
 			FullPath: path + v.Name(),
-			IsFolder: v.IsDir(),
+			IsFolder: isDir,
 		}
 		newList.File = append(newList.File, item)
 	}
