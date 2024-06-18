@@ -142,7 +142,12 @@ func listFiles(conn net.Conn, rpath string) {
 	if rpath == "/" {
 		path = "/"
 	}
-	list, _ := os.ReadDir(path)
+	list, err := os.ReadDir(path)
+	if err != nil {
+		e := fmt.Sprint(err)
+		sendMessage(Response{Successful: false, Message: e}, conn)
+		return
+	}
 
 	newList := FileList{}
 	for _, v := range list {
