@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -16,14 +17,22 @@ import (
 )
 
 var (
-	RemoteIP            string        = "192.168.1.181"
+	// CONFIGURATION VALUES
+	RemoteIP            string        = "127.0.0.1"
 	RemotePort          string        = "1302"
 	Remote_IP_Requester string        = "https://ip.bulgariu.xyz"
 	retryRate           time.Duration = 5
+	useTLS              bool          = true
 )
 
 func main() {
 	log.SetPrefix("[TIAMAT-CLIENT] ")
+	for _, v := range os.Args {
+		if v == "--insecure" {
+			useTLS = false
+		}
+	}
+
 	for {
 		if err := start(); err != nil {
 			log.Print(err)
@@ -32,8 +41,29 @@ func main() {
 	}
 }
 
-func start() error {
+func startSecureConnection() (net.Conn, error) {
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	conn, err := tls.Dial("tcp", RemoteIP+":"+RemotePort, conf)
+	return conn, err
+}
+
+func startInsecureConnection() (net.Conn, error) {
 	conn, err := net.Dial("tcp", RemoteIP+":"+RemotePort)
+	return conn, err
+}
+
+func start() error {
+	var conn net.Conn
+	var err error
+	if useTLS != true {
+		log.Println("WARNING: Starting unencrypted connection!")
+		conn, err = startInsecureConnection()
+	} else {
+		conn, err = startSecureConnection()
+	}
+
 	if err != nil {
 		e := fmt.Errorf("Error happened connecting to server: %v\n", err)
 		return e
